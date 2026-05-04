@@ -4,18 +4,37 @@ public class Cage : MonoBehaviour
 {
     public bool isUnlocked = false;
 
+    void Update()
+    {
+        // cek apakah player sudah punya key
+        if (KeyPickup.hasKey)
+        {
+            Unlock();
+        }
+    }
+
     void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.CompareTag("Player") && isUnlocked)
+        if (other.CompareTag("Player"))
         {
-            Debug.Log("Anak diselamatkan!");
-            Destroy(gameObject);
+            if (isUnlocked)
+            {
+                Debug.Log("Anak diselamatkan!");
+                Destroy(gameObject);
+            }
+            else
+            {
+                Debug.Log("Butuh kunci!");
+            }
         }
     }
 
     public void Unlock()
     {
-        isUnlocked = true;
-        Debug.Log("Cage terbuka!");
+        if (!isUnlocked)
+        {
+            isUnlocked = true;
+            Debug.Log("Cage terbuka!");
+        }
     }
 }

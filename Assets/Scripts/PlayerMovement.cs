@@ -14,21 +14,15 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
-        // Ambil input keyboard
+        // Ambil input
         movement.x = Input.GetAxisRaw("Horizontal");
         movement.y = Input.GetAxisRaw("Vertical");
 
-        // Normalisasi supaya tidak lebih cepat diagonal
         movement = movement.normalized;
     }
 
     void FixedUpdate()
     {
-        Move();
-    }
-
-    void Move()
-    {
-        rb.MovePosition(rb.position + movement * speed * Time.fixedDeltaTime);
+        rb.linearVelocity = movement * speed;
     }
 }
