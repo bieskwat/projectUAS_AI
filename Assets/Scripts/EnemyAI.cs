@@ -135,4 +135,12 @@ public class EnemyAI : MonoBehaviour
             lineRenderer.SetPosition(i, pos);
         }
     }
+
+    void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Player"))
+        {
+            FindObjectOfType<GameManager>().LoseGame();
+        }
+    }
 }

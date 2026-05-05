@@ -14,7 +14,6 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
-        // Ambil input
         movement.x = Input.GetAxisRaw("Horizontal");
         movement.y = Input.GetAxisRaw("Vertical");
 

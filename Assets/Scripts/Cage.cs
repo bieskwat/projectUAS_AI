@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class Cage : MonoBehaviour
 {
@@ -15,17 +15,11 @@ public class Cage : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.CompareTag("Player"))
+        Debug.Log("Trigger kena: " + other.name);
+        if (other.CompareTag("Player") && isUnlocked)
         {
-            if (isUnlocked)
-            {
-                Debug.Log("Anak diselamatkan!");
-                Destroy(gameObject);
-            }
-            else
-            {
-                Debug.Log("Butuh kunci!");
-            }
+            FindObjectOfType<GameManager>().WinGame();
+            Destroy(gameObject);
         }
     }
 
