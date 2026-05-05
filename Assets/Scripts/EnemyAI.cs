@@ -22,6 +22,8 @@ public class EnemyAI : MonoBehaviour
     private List<Node> path;
     private int targetIndex;
 
+    private LineRenderer lineRenderer;
+
     void Start()
     {
         currentState = State.Wander;
@@ -30,6 +32,7 @@ public class EnemyAI : MonoBehaviour
 
         InvokeRepeating("ChangeDirection", 0, 2f);
         InvokeRepeating("UpdatePath", 0, 1f); // update path tiap 1 detik
+        lineRenderer = GetComponent<LineRenderer>();
     }
 
     void Update()
@@ -84,6 +87,8 @@ public class EnemyAI : MonoBehaviour
         {
             path = pathfinding.FindPath(transform.position, player.position);
             targetIndex = 0;
+
+            DrawPath();
         }
     }
 
@@ -111,5 +116,23 @@ public class EnemyAI : MonoBehaviour
     void ChangeDirection()
     {
         wanderDirection = Random.insideUnitCircle.normalized;
+    }
+
+    void DrawPath()
+    {
+        if (path == null)
+        {
+            lineRenderer.positionCount = 0;
+            return;
+        }
+
+        lineRenderer.positionCount = path.Count;
+
+        for (int i = 0; i < path.Count; i++)
+        {
+            Vector3 pos = path[i].worldPosition;
+            pos.z = -1; // supaya terlihat di depan
+            lineRenderer.SetPosition(i, pos);
+        }
     }
 }
