@@ -85,8 +85,12 @@ public class GridManager : MonoBehaviour
         return grid;
     }
     //visualisasi node
+
+    public bool showGrid = true;
     void OnDrawGizmos()
     {
+        if (!showGrid) return;
+
         if (grid != null)
         {
             foreach (Node n in grid)
