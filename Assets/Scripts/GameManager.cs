@@ -19,6 +19,8 @@ public class GameManager : MonoBehaviour
         if (gameEnded) return;
         gameEnded = true;
 
+        Debug.Log("LOSE DIPANGGIL");
+
         SceneManager.LoadScene("LoseScene");
     }
 }
