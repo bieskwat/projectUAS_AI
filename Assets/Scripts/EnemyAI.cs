@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class EnemyAI : MonoBehaviour
@@ -17,10 +18,18 @@ public class EnemyAI : MonoBehaviour
 
     private Vector2 wanderDirection;
 
+    private Pathfinding pathfinding;
+    private List<Node> path;
+    private int targetIndex;
+
     void Start()
     {
         currentState = State.Wander;
+
+        pathfinding = FindObjectOfType<Pathfinding>();
+
         InvokeRepeating("ChangeDirection", 0, 2f);
+        InvokeRepeating("UpdatePath", 0, 1f); // update path tiap 1 detik
     }
 
     void Update()
@@ -43,12 +52,12 @@ public class EnemyAI : MonoBehaviour
         }
     }
 
+    // ================= FSM =================
+
     void IdleState(float distance)
     {
         if (distance < detectionRange)
-        {
             currentState = State.Chase;
-        }
     }
 
     void WanderState(float distance)
@@ -56,21 +65,48 @@ public class EnemyAI : MonoBehaviour
         transform.position += (Vector3)wanderDirection * speed * Time.deltaTime;
 
         if (distance < detectionRange)
-        {
             currentState = State.Chase;
-        }
     }
 
     void ChaseState(float distance)
     {
-        Vector2 dir = (player.position - transform.position).normalized;
-        transform.position += (Vector3)dir * speed * Time.deltaTime;
+        FollowPath();
 
         if (distance > detectionRange)
-        {
             currentState = State.Wander;
+    }
+
+    // ================= PATHFINDING =================
+
+    void UpdatePath()
+    {
+        if (currentState == State.Chase)
+        {
+            path = pathfinding.FindPath(transform.position, player.position);
+            targetIndex = 0;
         }
     }
+
+    void FollowPath()
+    {
+        if (path == null || path.Count == 0)
+            return;
+
+        Vector2 targetPos = path[targetIndex].worldPosition;
+        Vector2 dir = (targetPos - (Vector2)transform.position).normalized;
+
+        transform.position += (Vector3)dir * speed * Time.deltaTime;
+
+        if (Vector2.Distance(transform.position, targetPos) < 0.2f)
+        {
+            targetIndex++;
+
+            if (targetIndex >= path.Count)
+                targetIndex = path.Count - 1;
+        }
+    }
+
+    // ================= WANDER =================
 
     void ChangeDirection()
     {
