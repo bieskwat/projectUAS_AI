@@ -4,58 +4,29 @@ using UnityEngine;
 public class EnemyAI : MonoBehaviour
 {
     public Transform player;
-
     public float speed = 2f;
-    public float changeDirectionTime = 1.5f;
-    public float detectionRange = 4f;
-
-    private Vector2 moveDirection;
-    private float timer;
 
     private Pathfinding pathfinding;
     private List<Node> path;
     private int targetIndex;
 
     private Rigidbody2D rb;
+    private LineRenderer lineRenderer;
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
 
-        pathfinding = FindObjectOfType<Pathfinding>();
+        lineRenderer = GetComponent<LineRenderer>();
 
-        PickNewDirection();
+        pathfinding = FindObjectOfType<Pathfinding>();
 
         InvokeRepeating("UpdatePath", 0f, 0.3f);
     }
 
-    void Update()
+    void FixedUpdate()
     {
-        if (player != null)
-        {
-            float distance = Vector2.Distance(transform.position, player.position);
-
-            if (distance <= detectionRange)
-            {
-                FollowPath();
-                return;
-            }
-        }
-
-        Wander();
-    }
-
-    void Wander()
-    {
-        Vector2 nextPos = rb.position + moveDirection * speed * Time.deltaTime;
-        rb.MovePosition(nextPos);
-
-        timer -= Time.deltaTime;
-
-        if (timer <= 0f)
-        {
-            PickNewDirection();
-        }
+        FollowPath();
     }
 
     void UpdatePath()
@@ -63,16 +34,24 @@ public class EnemyAI : MonoBehaviour
         if (player == null || pathfinding == null)
             return;
 
-        float distance = Vector2.Distance(transform.position, player.position);
-
-        if (distance > detectionRange)
-            return;
-
         List<Node> newPath = pathfinding.FindPath(transform.position, player.position);
+
         if (newPath != null && newPath.Count > 0)
         {
             path = newPath;
-            targetIndex = 0;
+
+            targetIndex = 1;
+
+            if (targetIndex >= path.Count)
+            {
+                targetIndex = 0;
+            }
+
+            DrawPath();
+        }
+        else
+        {
+            lineRenderer.positionCount = 0;
         }
     }
 
@@ -89,7 +68,7 @@ public class EnemyAI : MonoBehaviour
         Vector2 nextPos = Vector2.MoveTowards(
             rb.position,
             targetPos,
-            speed * Time.deltaTime
+            speed * Time.fixedDeltaTime
         );
 
         rb.MovePosition(nextPos);
@@ -100,22 +79,32 @@ public class EnemyAI : MonoBehaviour
         }
     }
 
-    void PickNewDirection()
+    void DrawPath()
     {
-        int r = Random.Range(0, 4);
+        if (path == null || path.Count == 0)
+        {
+            lineRenderer.positionCount = 0;
+            return;
+        }
 
-        if (r == 0) moveDirection = Vector2.up;
-        if (r == 1) moveDirection = Vector2.down;
-        if (r == 2) moveDirection = Vector2.left;
-        if (r == 3) moveDirection = Vector2.right;
+        lineRenderer.positionCount = path.Count + 1;
 
-        timer = changeDirectionTime;
+        lineRenderer.SetPosition(0, transform.position);
+
+        for (int i = 0; i < path.Count; i++)
+        {
+            Vector3 pos = new Vector3(
+                path[i].worldPosition.x,
+                path[i].worldPosition.y,
+                -1f
+            );
+
+            lineRenderer.SetPosition(i + 1, pos);
+        }
     }
 
     void OnCollisionEnter2D(Collision2D other)
     {
-        Debug.Log("Enemy kena: " + other.gameObject.name);
-
         if (other.gameObject.CompareTag("Player"))
         {
             GameManager gm = FindObjectOfType<GameManager>();
