@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class Pathfinding : MonoBehaviour
 {
-    GridManager grid;
+    private GridManager grid;
 
     void Awake()
     {
@@ -14,6 +14,27 @@ public class Pathfinding : MonoBehaviour
     {
         Node startNode = grid.NodeFromWorldPoint(startPos);
         Node targetNode = grid.NodeFromWorldPoint(targetPos);
+
+        if (startNode == null || targetNode == null)
+            return null;
+
+        if (!startNode.walkable || !targetNode.walkable)
+            return null;
+
+        Node[,] allNodes = grid.GetGrid();
+
+        for (int x = 0; x < allNodes.GetLength(0); x++)
+        {
+            for (int y = 0; y < allNodes.GetLength(1); y++)
+            {
+                allNodes[x, y].gCost = int.MaxValue;
+                allNodes[x, y].hCost = 0;
+                allNodes[x, y].parent = null;
+            }
+        }
+
+        startNode.gCost = 0;
+        startNode.hCost = GetDistance(startNode, targetNode);
 
         List<Node> openSet = new List<Node>();
         HashSet<Node> closedSet = new HashSet<Node>();
@@ -27,8 +48,8 @@ public class Pathfinding : MonoBehaviour
             for (int i = 1; i < openSet.Count; i++)
             {
                 if (openSet[i].fCost < currentNode.fCost ||
-                    openSet[i].fCost == currentNode.fCost &&
-                    openSet[i].hCost < currentNode.hCost)
+                    (openSet[i].fCost == currentNode.fCost &&
+                     openSet[i].hCost < currentNode.hCost))
                 {
                     currentNode = openSet[i];
                 }
@@ -44,6 +65,9 @@ public class Pathfinding : MonoBehaviour
 
             foreach (Node neighbor in grid.GetNeighbors(currentNode))
             {
+                if (neighbor == null)
+                    continue;
+
                 if (!neighbor.walkable || closedSet.Contains(neighbor))
                     continue;
 
@@ -56,7 +80,9 @@ public class Pathfinding : MonoBehaviour
                     neighbor.parent = currentNode;
 
                     if (!openSet.Contains(neighbor))
+                    {
                         openSet.Add(neighbor);
+                    }
                 }
             }
         }
@@ -67,15 +93,21 @@ public class Pathfinding : MonoBehaviour
     List<Node> RetracePath(Node startNode, Node endNode)
     {
         List<Node> path = new List<Node>();
+
         Node currentNode = endNode;
 
         while (currentNode != startNode)
         {
             path.Add(currentNode);
+
+            if (currentNode.parent == null)
+                return null;
+
             currentNode = currentNode.parent;
         }
 
         path.Reverse();
+
         return path;
     }
 
@@ -84,8 +116,6 @@ public class Pathfinding : MonoBehaviour
         int dstX = Mathf.Abs(a.gridX - b.gridX);
         int dstY = Mathf.Abs(a.gridY - b.gridY);
 
-        if (dstX > dstY)
-            return 14 * dstY + 10 * (dstX - dstY);
-        return 14 * dstX + 10 * (dstY - dstX);
+        return dstX + dstY;
     }
 }

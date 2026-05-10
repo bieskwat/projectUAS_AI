@@ -6,8 +6,7 @@ public class Cage : MonoBehaviour
 
     void Update()
     {
-        // cek apakah player sudah punya key
-        if (KeyPickup.hasKey)
+        if (!isUnlocked && KeyPickup.hasKey)
         {
             Unlock();
         }
@@ -15,20 +14,22 @@ public class Cage : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D other)
     {
-        Debug.Log("Trigger kena: " + other.name);
+        Debug.Log("Trigger rumah kena: " + other.name);
+
         if (other.CompareTag("Player") && isUnlocked)
         {
-            FindObjectOfType<GameManager>().WinGame();
-            Destroy(gameObject);
+            GameManager gm = FindObjectOfType<GameManager>();
+
+            if (gm != null)
+            {
+                gm.WinGame();
+            }
         }
     }
 
     public void Unlock()
     {
-        if (!isUnlocked)
-        {
-            isUnlocked = true;
-            Debug.Log("Cage terbuka!");
-        }
+        isUnlocked = true;
+        Debug.Log("Cage terbuka!");
     }
 }

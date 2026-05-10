@@ -10,8 +10,11 @@ public class EnemyPathFollow : MonoBehaviour
     List<Node> path;
     int targetIndex;
 
+    Rigidbody2D rb;
+
     void Start()
     {
+        rb = GetComponent<Rigidbody2D>();
         pathfinding = FindObjectOfType<Pathfinding>();
         InvokeRepeating("UpdatePath", 0, 1f);
     }
@@ -22,17 +25,22 @@ public class EnemyPathFollow : MonoBehaviour
         targetIndex = 0;
     }
 
-    void Update()
+    void FixedUpdate()
     {
         if (path == null || path.Count == 0)
             return;
 
         Vector2 targetPos = path[targetIndex].worldPosition;
-        Vector2 dir = (targetPos - (Vector2)transform.position).normalized;
 
-        transform.position += (Vector3)dir * speed * Time.deltaTime;
+        Vector2 nextPos = Vector2.MoveTowards(
+            rb.position,
+            targetPos,
+            speed * Time.fixedDeltaTime
+        );
 
-        if (Vector2.Distance(transform.position, targetPos) < 0.2f)
+        rb.MovePosition(nextPos);
+
+        if (Vector2.Distance(rb.position, targetPos) < 0.2f)
         {
             targetIndex++;
 

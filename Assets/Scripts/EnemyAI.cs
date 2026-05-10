@@ -3,92 +3,76 @@ using UnityEngine;
 
 public class EnemyAI : MonoBehaviour
 {
-    public enum State
-    {
-        Idle,
-        Wander,
-        Chase
-    }
-
-    public State currentState;
-
     public Transform player;
-    public float speed = 3f;
-    public float detectionRange = 5f;
 
-    private Vector2 wanderDirection;
+    public float speed = 2f;
+    public float changeDirectionTime = 1.5f;
+    public float detectionRange = 4f;
+
+    private Vector2 moveDirection;
+    private float timer;
 
     private Pathfinding pathfinding;
     private List<Node> path;
     private int targetIndex;
 
-    private LineRenderer lineRenderer;
+    private Rigidbody2D rb;
 
     void Start()
     {
-        currentState = State.Wander;
+        rb = GetComponent<Rigidbody2D>();
 
         pathfinding = FindObjectOfType<Pathfinding>();
 
-        InvokeRepeating("ChangeDirection", 0, 2f);
-        InvokeRepeating("UpdatePath", 0, 1f); // update path tiap 1 detik
-        lineRenderer = GetComponent<LineRenderer>();
+        PickNewDirection();
+
+        InvokeRepeating("UpdatePath", 0f, 0.3f);
     }
 
     void Update()
     {
-        float distance = Vector2.Distance(transform.position, player.position);
-
-        switch (currentState)
+        if (player != null)
         {
-            case State.Idle:
-                IdleState(distance);
-                break;
+            float distance = Vector2.Distance(transform.position, player.position);
 
-            case State.Wander:
-                WanderState(distance);
-                break;
+            if (distance <= detectionRange)
+            {
+                FollowPath();
+                return;
+            }
+        }
 
-            case State.Chase:
-                ChaseState(distance);
-                break;
+        Wander();
+    }
+
+    void Wander()
+    {
+        Vector2 nextPos = rb.position + moveDirection * speed * Time.deltaTime;
+        rb.MovePosition(nextPos);
+
+        timer -= Time.deltaTime;
+
+        if (timer <= 0f)
+        {
+            PickNewDirection();
         }
     }
 
-    // ================= FSM =================
-
-    void IdleState(float distance)
-    {
-        if (distance < detectionRange)
-            currentState = State.Chase;
-    }
-
-    void WanderState(float distance)
-    {
-        transform.position += (Vector3)wanderDirection * speed * Time.deltaTime;
-
-        if (distance < detectionRange)
-            currentState = State.Chase;
-    }
-
-    void ChaseState(float distance)
-    {
-        FollowPath();
-
-        if (distance > detectionRange)
-            currentState = State.Wander;
-    }
-
-    // ================= PATHFINDING =================
-
     void UpdatePath()
     {
-        if (currentState == State.Chase)
-        {
-            path = pathfinding.FindPath(transform.position, player.position);
-            targetIndex = 0;
+        if (player == null || pathfinding == null)
+            return;
 
-            DrawPath();
+        float distance = Vector2.Distance(transform.position, player.position);
+
+        if (distance > detectionRange)
+            return;
+
+        List<Node> newPath = pathfinding.FindPath(transform.position, player.position);
+        if (newPath != null && newPath.Count > 0)
+        {
+            path = newPath;
+            targetIndex = 0;
         }
     }
 
@@ -97,51 +81,49 @@ public class EnemyAI : MonoBehaviour
         if (path == null || path.Count == 0)
             return;
 
+        if (targetIndex >= path.Count)
+            return;
+
         Vector2 targetPos = path[targetIndex].worldPosition;
-        Vector2 dir = (targetPos - (Vector2)transform.position).normalized;
 
-        transform.position += (Vector3)dir * speed * Time.deltaTime;
+        Vector2 nextPos = Vector2.MoveTowards(
+            rb.position,
+            targetPos,
+            speed * Time.deltaTime
+        );
 
-        if (Vector2.Distance(transform.position, targetPos) < 0.2f)
+        rb.MovePosition(nextPos);
+
+        if (Vector2.Distance(rb.position, targetPos) < 0.05f)
         {
             targetIndex++;
-
-            if (targetIndex >= path.Count)
-                targetIndex = path.Count - 1;
         }
     }
 
-    // ================= WANDER =================
-
-    void ChangeDirection()
+    void PickNewDirection()
     {
-        wanderDirection = Random.insideUnitCircle.normalized;
+        int r = Random.Range(0, 4);
+
+        if (r == 0) moveDirection = Vector2.up;
+        if (r == 1) moveDirection = Vector2.down;
+        if (r == 2) moveDirection = Vector2.left;
+        if (r == 3) moveDirection = Vector2.right;
+
+        timer = changeDirectionTime;
     }
 
-    void DrawPath()
+    void OnCollisionEnter2D(Collision2D other)
     {
-        if (path == null)
-        {
-            lineRenderer.positionCount = 0;
-            return;
-        }
+        Debug.Log("Enemy kena: " + other.gameObject.name);
 
-        lineRenderer.positionCount = path.Count;
-
-        for (int i = 0; i < path.Count; i++)
+        if (other.gameObject.CompareTag("Player"))
         {
-            Vector3 pos = path[i].worldPosition;
-            pos.z = -1; // supaya terlihat di depan
-            lineRenderer.SetPosition(i, pos);
-        }
-    }
+            GameManager gm = FindObjectOfType<GameManager>();
 
-    void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other.CompareTag("Player"))
-        {
-            Debug.Log("PLAYER KENA MUSUH!");
-            FindObjectOfType<GameManager>().LoseGame();
+            if (gm != null)
+            {
+                gm.LoseGame();
+            }
         }
     }
 }
