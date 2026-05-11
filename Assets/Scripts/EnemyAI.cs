@@ -19,7 +19,7 @@ public class EnemyAI : MonoBehaviour
 
         lineRenderer = GetComponent<LineRenderer>();
 
-        pathfinding = FindObjectOfType<Pathfinding>();
+        pathfinding = FindFirstObjectByType<Pathfinding>();
 
         InvokeRepeating("UpdatePath", 0f, 0.3f);
     }
@@ -107,7 +107,7 @@ public class EnemyAI : MonoBehaviour
     {
         if (other.gameObject.CompareTag("Player"))
         {
-            GameManager gm = FindObjectOfType<GameManager>();
+            GameManager gm = FindFirstObjectByType<GameManager>();
 
             if (gm != null)
             {

@@ -2662,6 +2662,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   player: {fileID: 814441642}
   speed: 3
+  detectionRange: 1
+  wanderChangeTime: 2
 --- !u!120 &1347044256
 LineRenderer:
   serializedVersion: 2

@@ -18,7 +18,7 @@ public class Cage : MonoBehaviour
 
         if (other.CompareTag("Player") && isUnlocked)
         {
-            GameManager gm = FindObjectOfType<GameManager>();
+            GameManager gm = FindFirstObjectByType<GameManager>();
 
             if (gm != null)
             {
