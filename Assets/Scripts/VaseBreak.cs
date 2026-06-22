@@ -1,10 +1,11 @@
 using UnityEngine;
+using System.Collections;
 
 public class VaseBreak : MonoBehaviour
 {
     public AudioClip breakSound;
 
-    private bool broken = false;
+    private bool broken;
 
     private void OnTriggerEnter2D(Collider2D other)
     {
@@ -18,7 +19,17 @@ public class VaseBreak : MonoBehaviour
 
             SoundManager.MakeSound(transform.position);
 
-            Destroy(gameObject);
+            StartCoroutine(BreakAndRespawn());
         }
+    }
+
+    IEnumerator BreakAndRespawn()
+    {
+        yield return new WaitForSeconds(0.5f);
+
+        FindObjectOfType<VaseSpawner>()
+            .SpawnVase();
+
+        Destroy(gameObject);
     }
 }
