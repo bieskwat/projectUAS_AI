@@ -105,4 +105,21 @@ public class GridManager : MonoBehaviour
             Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter - 0.1f));
         }
     }
+    public Node GetRandomWalkableNode()
+    {
+        List<Node> walkableNodes = new List<Node>();
+
+        foreach (Node node in grid)
+        {
+            if (node.walkable)
+            {
+                walkableNodes.Add(node);
+            }
+        }
+
+        if (walkableNodes.Count == 0)
+            return null;
+
+        return walkableNodes[Random.Range(0, walkableNodes.Count)];
+    }
 }

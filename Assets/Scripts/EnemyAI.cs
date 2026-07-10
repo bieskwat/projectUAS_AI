@@ -3,16 +3,34 @@ using UnityEngine;
 
 public class EnemyAI : MonoBehaviour
 {
-    public Transform player;
+    public enum EnemyState
+    {
+        Patrol,
+        Chase
+    }
+
+    [Header("Movement")]
     public float speed = 2f;
 
-    private Pathfinding pathfinding;
-    private List<Node> path;
-    private int targetIndex;
+    [Header("Player")]
+    public Transform player;
+
+    [Header("Patrol")]
+    private Node patrolTarget;
+    private bool reachedPatrolTarget = true;
+
+    private EnemyState currentState = EnemyState.Patrol;
 
     private Rigidbody2D rb;
     private LineRenderer lineRenderer;
+    private Pathfinding pathfinding;
+    private VisionSensor vision;
 
+    private List<Node> path;
+    private int targetIndex;
+
+
+    private GridManager grid;
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -21,20 +39,100 @@ public class EnemyAI : MonoBehaviour
 
         pathfinding = FindFirstObjectByType<Pathfinding>();
 
-        InvokeRepeating("UpdatePath", 0f, 0.3f);
+        grid = FindFirstObjectByType<GridManager>();
+
+        vision = GetComponent<VisionSensor>();
+
+        if (lineRenderer == null)
+            Debug.LogWarning("LineRenderer belum dipasang.");
+
+        if (vision == null)
+            Debug.LogError("VisionSensor belum dipasang.");
+
+        currentState = EnemyState.Patrol;
+
+        InvokeRepeating(nameof(UpdatePath), 0f, 0.3f);
+    }
+
+    void Update()
+    {
+        //-------------------------
+        // Decision Tree
+        //-------------------------
+
+        if (vision == null)
+            return;
+
+        EnemyState newState =
+            vision.canSeePlayer ?
+            EnemyState.Chase :
+            EnemyState.Patrol;
+
+        if (newState != currentState)
+        {
+            currentState = newState;
+
+            path = null;
+        }
     }
 
     void FixedUpdate()
     {
+        switch (currentState)
+        {
+            case EnemyState.Patrol:
+
+                PatrolUpdate();
+
+                break;
+
+            case EnemyState.Chase:
+
+                FollowPath();
+
+                break;
+        }
+    }
+
+    //---------------------------------------------------
+    // PATROL
+    //---------------------------------------------------
+
+    void PatrolUpdate()
+    {
+        if (reachedPatrolTarget || path == null)
+        {
+            patrolTarget = grid.GetRandomWalkableNode();
+
+            while (patrolTarget == null)
+            {
+                patrolTarget = grid.GetRandomWalkableNode();
+            }
+
+            reachedPatrolTarget = false;
+
+            UpdatePatrolPath();
+
+            if (path == null)
+            {
+                reachedPatrolTarget = true;
+                return;
+            }
+        }
+
         FollowPath();
     }
 
-    void UpdatePath()
+    void UpdatePatrolPath()
     {
-        if (player == null || pathfinding == null)
+        if (patrolTarget == null)
             return;
 
-        List<Node> newPath = pathfinding.FindPath(transform.position, player.position);
+        List<Node> newPath =
+            pathfinding.FindPath(
+                transform.position,
+                patrolTarget.worldPosition
+            );
 
         if (newPath != null && newPath.Count > 0)
         {
@@ -43,15 +141,45 @@ public class EnemyAI : MonoBehaviour
             targetIndex = 1;
 
             if (targetIndex >= path.Count)
-            {
                 targetIndex = 0;
-            }
+
+            DrawPath();
+        }
+    }
+
+    //---------------------------------------------------
+    // CHASE
+    //---------------------------------------------------
+
+    void UpdatePath()
+    {
+        if (currentState != EnemyState.Chase)
+            return;
+
+        if (player == null || pathfinding == null)
+            return;
+
+        List<Node> newPath =
+            pathfinding.FindPath(
+                transform.position,
+                player.position
+            );
+
+        if (newPath != null && newPath.Count > 0)
+        {
+            path = newPath;
+
+            targetIndex = 1;
+
+            if (targetIndex >= path.Count)
+                targetIndex = 0;
 
             DrawPath();
         }
         else
         {
-            lineRenderer.positionCount = 0;
+            if (lineRenderer != null)
+                lineRenderer.positionCount = 0;
         }
     }
 
@@ -63,24 +191,58 @@ public class EnemyAI : MonoBehaviour
         if (targetIndex >= path.Count)
             return;
 
-        Vector2 targetPos = path[targetIndex].worldPosition;
+        Vector2 targetPos =
+            path[targetIndex].worldPosition;
 
-        Vector2 nextPos = Vector2.MoveTowards(
-            rb.position,
-            targetPos,
-            speed * Time.fixedDeltaTime
-        );
+        Vector2 dir =
+            (targetPos - rb.position).normalized;
+
+        vision.SetFacingDirection(dir);
+
+        // Flip sprite sesuai arah gerak
+        //if (dir.x > 0.05f)
+        //{
+        //    transform.localScale = new Vector3(1, 1, 1);
+        //}
+        //else if (dir.x < -0.05f)
+        //{
+        //    transform.localScale = new Vector3(-1, 1, 1);
+        //}
+
+        Vector2 nextPos =
+            Vector2.MoveTowards(
+                rb.position,
+                targetPos,
+                speed * Time.fixedDeltaTime
+            );
 
         rb.MovePosition(nextPos);
 
         if (Vector2.Distance(rb.position, targetPos) < 0.05f)
         {
             targetIndex++;
+            if (targetIndex >= path.Count)
+            {
+                if (currentState == EnemyState.Patrol)
+                {
+                    reachedPatrolTarget = true;
+                    path = null;
+                }
+
+                return;
+            }
         }
     }
 
+    //---------------------------------------------------
+    // DRAW PATH
+    //---------------------------------------------------
+
     void DrawPath()
     {
+        if (lineRenderer == null)
+            return;
+
         if (path == null || path.Count == 0)
         {
             lineRenderer.positionCount = 0;
@@ -101,13 +263,20 @@ public class EnemyAI : MonoBehaviour
 
             lineRenderer.SetPosition(i + 1, pos);
         }
+
+        
     }
+
+    //---------------------------------------------------
+    // PLAYER HIT
+    //---------------------------------------------------
 
     void OnCollisionEnter2D(Collision2D other)
     {
         if (other.gameObject.CompareTag("Player"))
         {
-            GameManager gm = FindFirstObjectByType<GameManager>();
+            GameManager gm =
+                FindFirstObjectByType<GameManager>();
 
             if (gm != null)
             {
