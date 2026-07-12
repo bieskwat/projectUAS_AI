@@ -6,6 +6,7 @@ public class EnemyAI : MonoBehaviour
     public enum EnemyState
     {
         Patrol,
+        Investigate,
         Chase
     }
 
@@ -19,6 +20,9 @@ public class EnemyAI : MonoBehaviour
     private Node patrolTarget;
     private bool reachedPatrolTarget = true;
 
+    private Vector3 investigatePosition;
+    private float investigateTimer;
+    public float investigateDuration = 3f;
     private EnemyState currentState = EnemyState.Patrol;
 
     private Rigidbody2D rb;
@@ -56,23 +60,35 @@ public class EnemyAI : MonoBehaviour
 
     void Update()
     {
-        //-------------------------
-        // Decision Tree
-        //-------------------------
-
         if (vision == null)
             return;
 
-        EnemyState newState =
-            vision.canSeePlayer ?
-            EnemyState.Chase :
-            EnemyState.Patrol;
-
-        if (newState != currentState)
+        if (vision.canSeePlayer)
         {
-            currentState = newState;
+            currentState = EnemyState.Chase;
+            return;
+        }
 
-            path = null;
+        if (SoundManager.soundMade)
+        {
+            float distance =
+                Vector2.Distance(
+                    transform.position,
+                    SoundManager.soundPosition);
+
+            if (distance <= SoundManager.soundRadius)
+            {
+                investigatePosition =
+                    SoundManager.soundPosition;
+
+                currentState =
+                    EnemyState.Investigate;
+
+                investigateTimer =
+                    investigateDuration;
+            }
+
+            SoundManager.soundMade = false;
         }
     }
 
@@ -86,11 +102,16 @@ public class EnemyAI : MonoBehaviour
 
                 break;
 
+            case EnemyState.Investigate:
+                InvestigateUpdate();
+                break;
+
             case EnemyState.Chase:
 
                 FollowPath();
 
                 break;
+
         }
     }
 
@@ -144,6 +165,30 @@ public class EnemyAI : MonoBehaviour
                 targetIndex = 0;
 
             DrawPath();
+        }
+    }
+
+    void InvestigateUpdate()
+    {
+        investigateTimer -= Time.fixedDeltaTime;
+
+        if (path == null)
+        {
+            path = pathfinding.FindPath(
+                transform.position,
+                investigatePosition
+            );
+
+            targetIndex = 1;
+        }
+
+        FollowPath();
+
+        if (investigateTimer <= 0)
+        {
+            currentState = EnemyState.Patrol;
+
+            path = null;
         }
     }
 
