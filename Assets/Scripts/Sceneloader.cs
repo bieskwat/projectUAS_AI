@@ -10,7 +10,7 @@ public class Sceneloader : MonoBehaviour
 
     public void Retry()
     {
-        SceneManager.LoadScene("MainScene");
+        SceneManager.LoadScene("Level2");
     }
 
     public void LoadWin()

@@ -69,6 +69,14 @@ public class EnemyAI : MonoBehaviour
             return;
         }
 
+        // kalo udh ga keliatan player, balik patrol
+        if (currentState == EnemyState.Chase && !vision.canSeePlayer)
+        {
+            currentState = EnemyState.Patrol;
+            path = null;
+            reachedPatrolTarget = true;
+        }
+
         if (SoundManager.soundMade)
         {
             float distance =
