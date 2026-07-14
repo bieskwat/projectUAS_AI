@@ -3,6 +3,7 @@
 public class Cage : MonoBehaviour
 {
     public bool isUnlocked = false;
+    private Animator animator;
 
     void Update()
     {
@@ -10,6 +11,10 @@ public class Cage : MonoBehaviour
         {
             Unlock();
         }
+    }
+    void Start()
+    {
+        animator = GetComponent<Animator>();
     }
 
     void OnTriggerEnter2D(Collider2D other)
@@ -26,10 +31,15 @@ public class Cage : MonoBehaviour
             }
         }
     }
-
     public void Unlock()
     {
         isUnlocked = true;
+
+        if (animator != null)
+        {
+            animator.SetTrigger("Open");
+        }
+
         Debug.Log("Cage terbuka!");
     }
 }
